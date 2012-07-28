@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) {
 }
 
 jint
-Java_com_gnychis_coexisyst_DeviceHandlers_UbertoothOne_startUbertooth(JNIEnv* env, jobject thiz)
+Java_com_gnychis_ubertooth_DeviceHandlers_UbertoothOne_startUbertooth(JNIEnv* env, jobject thiz)
 {
 	devh = ubertooth_start();
   if(devh == NULL)
@@ -46,7 +46,7 @@ Java_com_gnychis_coexisyst_DeviceHandlers_UbertoothOne_startUbertooth(JNIEnv* en
 }
 
 jint
-Java_com_gnychis_coexisyst_DeviceHandlers_UbertoothOne_stopUbertooth(JNIEnv* env, jobject thiz)
+Java_com_gnychis_ubertooth_DeviceHandlers_UbertoothOne_stopUbertooth(JNIEnv* env, jobject thiz)
 {
 	ubertooth_stop(devh);
   return 1;
