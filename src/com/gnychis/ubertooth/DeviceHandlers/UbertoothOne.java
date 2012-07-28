@@ -62,11 +62,6 @@ public class UbertoothOne {
 		Context parent;
 		UbertoothMain mainActivity;
 		
-		private void debugOut(String msg) {
-			if(VERBOSE)
-				Log.d("WiSpyInit", msg);
-		}
-		
 		// Used to send messages to the main Activity (UI) thread
 		protected void sendMainMessage(UbertoothMain.ThreadMessages t) {
 			Message msg = new Message();
