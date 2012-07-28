@@ -13,6 +13,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.widget.Toast;
 
+import com.gnychis.coexisyst.R;
 import com.gnychis.ubertooth.Core.USBMon;
 import com.gnychis.ubertooth.DeviceHandlers.UbertoothOne;
 import com.stericson.RootTools.RootTools;
@@ -37,6 +38,8 @@ public class UbertoothMain extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_ubertooth_main);
+        
+        RootTools.installBinary(this, R.raw.ubertooth_util, "ubertooth_util");
         
     	try {  // Load the libusb related libraries
     		System.loadLibrary("usb");
