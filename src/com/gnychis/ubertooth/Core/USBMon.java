@@ -59,22 +59,7 @@ public class USBMon
 		_scan_timer=null;
 		return true;
 	}
-	
-	// This function makes a major assumption that only the AR9280 has a file in /sys called loading
-	// when it is expecting firmware.  But, it's held true so far to bypass USB detection issues
-	// and workaround needed a udev daemon.
-	protected int checkAR9280()
-	{
-		try {
-			List<String> res = RootTools.sendShell("busybox find /sys -name loading",0);
-			if(res.size()!=0)
-				return 1;
-		} catch(Exception e) {
-			Log.e("USBMon", "exception trying to check for AR9280", e);
-		}
-		return 0;
-	}
-	
+
 	public void usbPoll( )
 	{
 		int ubertooth_in_devlist = USBcheckForDevice(0xffff, 0x0004);
@@ -86,7 +71,6 @@ public class USBMon
 			updateState(UbertoothOne.UBERTOOTH_DISCONNECT);
 	}
 	
-	// FIXME:  This seems redundant with the function above it (usbPoll())
 	protected void updateState(int event)
 	{		
 		if(event == UbertoothOne.UBERTOOTH_CONNECT) {
