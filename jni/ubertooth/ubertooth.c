@@ -25,10 +25,13 @@
 #include <string.h>
 #include <time.h>
 #include <endian.h>
+#include <android/log.h>
 
 #include <bluetooth_packet.h>
 
 #include "ubertooth.h"
+
+#define LOG_TAG "Ubertooth" // text for log tag 
 
 #define MAX(a,b) ((a)>(b) ? (a) : (b))
 
@@ -77,19 +80,23 @@ static struct libusb_device_handle* find_ubertooth_device(void)
 	for(i= 0 ; i < usb_devs ; ++i) {
 		r= libusb_get_device_descriptor(usb_list[i], &desc);
 		if(r < 0)
-			fprintf(stderr, "couldn't get usb descriptor for dev #%d!\n", i);
+      __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "couldn't get usb descriptor for dev #%d!\n", i);
 		if (desc.idVendor == VENDORID && desc.idProduct == PRODUCTID) {
 			ubertooth_devs[ubertooths]= i;
+      __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "there's an ubertooth up in here!\n", i);
 			ubertooths++;
 			}
 		}
-	if(ubertooths == 1)
+	if(ubertooths == 1) {
 		devh = libusb_open_device_with_vid_pid(NULL, VENDORID, PRODUCTID);
+    if(devh==NULL)
+        __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "tried to open Ubertooth device, but failed :(", i);
+  }
 	else if (ubertooths == 0)
 		return NULL;
 	else {
 		if (Ubertooth_Device < 0) {
-			fprintf(stderr, "multiple Ubertooth devices found! Use '-U' to specify device number\n");
+      __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "multiple Ubertooth devices found! Use '-U' to specify device number\n");
 			for(i= 0 ; i < ubertooths ; ++i) {
 				libusb_get_device_descriptor(usb_list[ubertooth_devs[i]], &desc);
 				libusb_open(usb_list[ubertooth_devs[i]], &devh);
@@ -687,20 +694,20 @@ struct libusb_device_handle* ubertooth_start()
 
 	r = libusb_init(NULL);
 	if (r < 0) {
-		fprintf(stderr, "libusb_init failed (got 1.0?)\n");
+    __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "libusb_init failed (got 1.0?)");
 		return NULL;
 	}
 
 	devh = find_ubertooth_device();
 	if (devh == NULL) {
-		fprintf(stderr, "could not open Ubertooth device\n");
+    __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "could not open Ubertooth device");
 		ubertooth_stop(devh);
 		return NULL;
 	}
 
 	r = libusb_claim_interface(devh, 0);
 	if (r < 0) {
-		fprintf(stderr, "usb_claim_interface error %d\n", r);
+    __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "usb_claim_interface error %d\n", r);
 		ubertooth_stop(devh);
 		return NULL;
 	}

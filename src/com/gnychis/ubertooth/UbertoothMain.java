@@ -1,6 +1,7 @@
 package com.gnychis.ubertooth;
 
 import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
 import android.app.Activity;
@@ -36,6 +37,18 @@ public class UbertoothMain extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_ubertooth_main);
+        
+    	try {  // Load the libusb related libraries
+    		System.loadLibrary("usb");
+    		System.loadLibrary("usb-compat");
+    		System.loadLibrary("usbhelper");
+    		System.loadLibrary("btbb");
+    		System.loadLibrary("ubertooth");
+    	} catch (Exception e) {
+    		Log.e("UbertoothMain", "error trying to load a USB related library", e);
+    	}
+    	
+    	toastMessages = new ArrayBlockingQueue<String>(20);
         
         usbmon = new USBMon(this, _handler);	// Start the USB handler
         ubertooth = new UbertoothOne(this);		// Instantiate the UbertoothOne

@@ -28,7 +28,7 @@ public class USBMon
 		_mainActivity = c;
 		_handler = h;
 		_scan_timer=null;
-		initUSB();
+		_mainActivity.sendToastMessage(_handler, initUSB());
 		startUSBMon();
 	}
 	
@@ -77,7 +77,7 @@ public class USBMon
 	
 	public void usbPoll( )
 	{
-		int ubertooth_in_devlist = _mainActivity.USBcheckForDevice(0xffff, 0x0004);
+		int ubertooth_in_devlist = USBcheckForDevice(0xffff, 0x0004);
 				
 		// Ubertooth check
 		if(ubertooth_in_devlist==1 && _mainActivity.ubertooth._device_connected==false)
@@ -102,4 +102,6 @@ public class USBMon
 		}
 	}
 	public native void USBList();
+	public native int USBcheckForDevice(int vid, int pid);
+	public native String initUSB();
 }

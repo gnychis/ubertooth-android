@@ -40,7 +40,6 @@ public class UbertoothOne {
 		_state_lock = new Semaphore(1,true);
 		_mainActivity = c;
 		_state = UbertoothState.IDLE;
-		Log.d(TAG, "Initializing ZigBee class...");
 	}
 	
 	public boolean isConnected() {
