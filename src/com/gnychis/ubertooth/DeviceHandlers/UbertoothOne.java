@@ -1,4 +1,4 @@
-package com.gnychis.coexisyst.DeviceHandlers;
+package com.gnychis.ubertooth.DeviceHandlers;
 
 import java.util.ArrayList;
 import java.util.Iterator;

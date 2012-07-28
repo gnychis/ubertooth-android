@@ -8,12 +8,18 @@ import android.app.ProgressDialog;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.util.Log;
 import android.view.Menu;
 import android.widget.Toast;
 
+import com.gnychis.ubertooth.Core.USBMon;
+import com.gnychis.ubertooth.DeviceHandlers.UbertoothOne;
 import com.stericson.RootTools.RootTools;
 
 public class UbertoothMain extends Activity {
+	
+	public UbertoothOne ubertooth;
+	protected USBMon usbmon;
 	
 	public BlockingQueue<String> toastMessages;
 	private ProgressDialog pd;
@@ -30,6 +36,9 @@ public class UbertoothMain extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_ubertooth_main);
+        
+        usbmon = new USBMon(this, _handler);	// Start the USB handler
+        ubertooth = new UbertoothOne(this);		// Instantiate the UbertoothOne
     }
 
     @Override
@@ -87,6 +96,16 @@ public class UbertoothMain extends Activity {
 		Toast.makeText(getApplicationContext(), "Failed to initialize Ubertooth One device", Toast.LENGTH_LONG).show();
 	}
 	
+	public void sendToastMessage(Handler h, String msg) {
+		try {
+			toastMessages.put(msg);
+			Message m = new Message();
+			m.obj = ThreadMessages.SHOW_TOAST;
+			h.sendMessage(m);
+		} catch (Exception e) {
+			Log.e("UbertoothMain", "Exception trying to put toast msg in queue:", e);
+		}
+	}
     
     public String getAppUser() {
     	try {
