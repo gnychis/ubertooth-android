@@ -13,7 +13,6 @@ import android.util.Log;
 import android.view.Menu;
 import android.widget.Toast;
 
-import com.gnychis.coexisyst.R;
 import com.gnychis.ubertooth.Core.USBMon;
 import com.gnychis.ubertooth.DeviceHandlers.UbertoothOne;
 import com.stericson.RootTools.RootTools;
@@ -102,7 +101,7 @@ public class UbertoothMain extends Activity {
 	
 	public void ubertoothInitialized() {
 		pd.dismiss();
-		Toast.makeText(getApplicationContext(), "Successfully initialized Ubertooth One device", Toast.LENGTH_LONG).show();	
+		Toast.makeText(getApplicationContext(), "Successfully initialized Ubertooth One device (" + ubertooth._firmware_version + ")", Toast.LENGTH_LONG).show();	
 		usbmon.startUSBMon();		
 	}
 	

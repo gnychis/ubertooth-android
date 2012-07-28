@@ -24,6 +24,7 @@ public class UbertoothOne {
 	public static final int POLLS_IN_MAX = 10;
 	
 	UbertoothMain _mainActivity;
+	public String _firmware_version;
 	
 	public boolean _device_connected;
 	
@@ -83,6 +84,7 @@ public class UbertoothOne {
 			runCommand("find /dev/bus -exec chown " + mainActivity.getAppUser() + " {} \\;");
 			
 			// Get the firmware version for fun and demonstration
+			_firmware_version = runCommand("/data/data/com.gnychis.ubertooth/files/ubertooth_util -v").get(0);
 			
 			// Try to initialize the Ubertooth One
 			if(startUbertooth()==1)
