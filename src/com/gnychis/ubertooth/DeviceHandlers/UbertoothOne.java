@@ -10,10 +10,8 @@ import android.os.AsyncTask;
 import android.os.Message;
 import android.util.Log;
 
-import com.gnychis.coexisyst.CoexiSyst;
-import com.gnychis.coexisyst.CoexiSyst.ThreadMessages;
-import com.gnychis.coexisyst.Core.Packet;
-import com.gnychis.coexisyst.Core.USBSerial;
+import com.gnychis.ubertooth.UbertoothMain;
+import com.gnychis.ubertooth.UbertoothMain.ThreadMessages;
 import com.stericson.RootTools.RootTools;
 
 public class UbertoothOne {
@@ -25,12 +23,11 @@ public class UbertoothOne {
 	public static final String UBERTOOTH_SCAN_RESULT = "com.gnychis.coexisyst.UBERTOOTH_SCAN_RESULT";
 	public static final int POLLS_IN_MAX = 10;
 	
-	CoexiSyst coexisyst;
+	UbertoothMain _mainActivity;
 	
 	public boolean _device_connected;
 	
 	ArrayList<Integer> _scan_result;
-	ArrayList<Packet> _scan_results;
 	
 	UbertoothState _state;
 	private Semaphore _state_lock;
@@ -39,10 +36,9 @@ public class UbertoothOne {
 		SCANNING,
 	}
 	
-	public UbertoothOne(CoexiSyst c) {
+	public UbertoothOne(UbertoothMain c) {
 		_state_lock = new Semaphore(1,true);
-		_scan_results = new ArrayList<Packet>();
-		coexisyst = c;
+		_mainActivity = c;
 		_state = UbertoothState.IDLE;
 		Log.d(TAG, "Initializing ZigBee class...");
 	}
@@ -54,7 +50,7 @@ public class UbertoothOne {
 	public void connected() {
 		_device_connected=true;
 		UbertoothOneInit wsi = new UbertoothOneInit();
-		wsi.execute(coexisyst);
+		wsi.execute(_mainActivity);
 	}
 	
 	public void disconnected() {
@@ -64,8 +60,7 @@ public class UbertoothOne {
 	protected class UbertoothOneInit extends AsyncTask<Context, Integer, String>
 	{
 		Context parent;
-		CoexiSyst coexisyst;
-		USBSerial _dev;
+		UbertoothMain mainActivity;
 		
 		private void debugOut(String msg) {
 			if(VERBOSE)
@@ -73,20 +68,20 @@ public class UbertoothOne {
 		}
 		
 		// Used to send messages to the main Activity (UI) thread
-		protected void sendMainMessage(CoexiSyst.ThreadMessages t) {
+		protected void sendMainMessage(UbertoothMain.ThreadMessages t) {
 			Message msg = new Message();
 			msg.obj = t;
-			coexisyst._handler.sendMessage(msg);
+			mainActivity._handler.sendMessage(msg);
 		}
 		
 		@Override
 		protected String doInBackground( Context ... params )
 		{
 			parent = params[0];
-			coexisyst = (CoexiSyst) params[0];
+			mainActivity = (UbertoothMain) params[0];
 			
 			// To use the WiSpy device, we need to give the USB device the application's permissions
-			runCommand("find /dev/bus -exec chown " + coexisyst.getAppUser() + " {} \\;");
+			runCommand("find /dev/bus -exec chown " + mainActivity.getAppUser() + " {} \\;");
 			
 			// Try to initialize the Ubertooth One
 			if(startUbertooth()==1)
