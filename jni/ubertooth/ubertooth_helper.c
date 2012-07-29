@@ -28,6 +28,8 @@
 
 extern char Quiet;
 extern char Ubertooth_Device;
+
+const int RSSI_OFFSET=-54;
 	
 struct libusb_device_handle *devh = NULL;
 
@@ -103,11 +105,11 @@ Java_com_gnychis_ubertooth_DeviceHandlers_UbertoothOne_scanSpectrum( JNIEnv* env
 
       for (j = PKT_LEN * i + SYM_OFFSET; j < PKT_LEN * i + 62; j += 3) {
         frequency = (buffer[j] << 8) | buffer[j + 1];
-        int val = buffer[j+2];
+        int8_t val = (int8_t)buffer[j+2]+RSSI_OFFSET;
         int bin = frequency - low_freq;
         //__android_log_print(ANDROID_LOG_INFO, LOG_TAG, "... freq: %d - val: %d - bin: %d", frequency, val, bin);
-        if(val>fill[bin]) { // Do a max across the sweeps
-          fill[bin]=val;
+        if((int)val>fill[bin]) { // Do a max across the sweeps
+          fill[bin]=(int)val;
         //  __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "... freq: %d - val: %d - bin: %d", frequency, val, bin);
         }
 

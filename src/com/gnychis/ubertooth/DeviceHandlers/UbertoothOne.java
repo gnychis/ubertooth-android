@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.concurrent.Semaphore;
 
 import android.content.Context;
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Message;
 import android.util.Log;
@@ -33,17 +34,8 @@ public class UbertoothOne {
 	
 	ArrayList<Integer> _scan_result;
 	
-	UbertoothState _state;
-	private Semaphore _state_lock;
-	public enum UbertoothState {
-		IDLE,
-		SCANNING,
-	}
-	
 	public UbertoothOne(UbertoothMain c) {
-		_state_lock = new Semaphore(1,true);
 		_mainActivity = c;
-		_state = UbertoothState.IDLE;
 	}
 	
 	public boolean isConnected() {
@@ -89,8 +81,6 @@ public class UbertoothOne {
 				sendMainMessage(ThreadMessages.UBERTOOTH_INITIALIZED);
 			else
 				sendMainMessage(ThreadMessages.UBERTOOTH_FAILED);
-			
-			int[] scan_res = scanSpectrum(BT_LOW_FREQ, BT_HIGH_FREQ, 3);
 
 			return "OK";
 		}
@@ -121,6 +111,53 @@ public class UbertoothOne {
 				return null;
 			}
 		}
+	}
+	
+	// This is a thread to perform the actual scan (blocking and waiting for it), rather
+	// than blocking the main activity.  When it is complete, it sends the results to the
+	// main activity.
+	protected class WiSpyScan extends AsyncTask<Context, Integer, String>
+	{
+		Context parent;
+		UbertoothMain mainActivity;
+		
+		// Used to send messages to the main Activity (UI) thread
+		protected void sendMainMessage(UbertoothMain.ThreadMessages t) {
+			Message msg = new Message();
+			msg.obj = t;
+			mainActivity._handler.sendMessage(msg);
+		}
+		
+		@Override
+		protected String doInBackground( Context ... params )
+		{
+			parent = params[0];
+			mainActivity = (UbertoothMain) params[0];
+			
+			// Perform the scan, specify the low and high freqs as well as
+			// the number of sweeps to perform (this is a "max hold").
+			int[] scan_res = scanSpectrum(BT_LOW_FREQ, BT_HIGH_FREQ, 10);
+			
+			if(scan_res==null) {
+				sendMainMessage(ThreadMessages.UBERTOOTH_SCAN_FAILED);
+				return "NOPE";
+			}
+			
+			_scan_result = new ArrayList<Integer>();
+			for(int i=0; i<scan_res.length; i++)
+				_scan_result.add(scan_res[i]);
+				
+			sendMainMessage(ThreadMessages.UBERTOOTH_SCAN_COMPLETE);
+			
+			// Now, send out a broadcast with the results in the broadcast
+			Intent i = new Intent();
+			i.setAction(UBERTOOTH_SCAN_RESULT);
+			i.putExtra("spectrum-bins", _scan_result);
+			mainActivity.sendBroadcast(i);
+			
+			return "PASS";
+		}
+		
 	}
 	
 	public native int startUbertooth();
