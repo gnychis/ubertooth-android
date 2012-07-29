@@ -50,13 +50,19 @@ Java_com_gnychis_ubertooth_DeviceHandlers_UbertoothOne_startUbertooth(JNIEnv* en
 jintArray
 Java_com_gnychis_ubertooth_DeviceHandlers_UbertoothOne_scanSpectrum( JNIEnv* env, jobject thiz, int low_freq, int high_freq, int sweeps)
 {
-  int ns, xfer_size=512, num_blocks=0xFFFF, curr_sweep=0;
+  int ns, xfer_size=512, num_blocks=0xFFFF, curr_sweep=0,z;
   int nbins = high_freq-low_freq;  // number of 1MHz bins
   jintArray result = (jintArray)(*env)->NewIntArray(env, nbins);
 	jint *fill = (int *)malloc(sizeof(int) * nbins);
+
+//  sweeps+=10;
+
+  for(z=0; z<nbins; z++)
+    fill[z]=-255;
+
   bool done=false;
         
-  __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "call to scanSpectrum(%d,%d,%d)", low_freq, high_freq, sweeps);
+  //__android_log_print(ANDROID_LOG_INFO, LOG_TAG, "call to scanSpectrum(%d,%d,%d)", low_freq, high_freq, sweeps);
   
   u8 buffer[BUFFER_SIZE];
   int r;
@@ -77,7 +83,6 @@ Java_com_gnychis_ubertooth_DeviceHandlers_UbertoothOne_scanSpectrum( JNIEnv* env
   cmd_specan(devh, low_freq, high_freq);
 
   while (!done) {
-    __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "while num_xfers %d", num_xfers);
     r = libusb_bulk_transfer(devh, DATA_IN, buffer, xfer_size,
         &transferred, TIMEOUT);
     if (r < 0) {
@@ -100,12 +105,16 @@ Java_com_gnychis_ubertooth_DeviceHandlers_UbertoothOne_scanSpectrum( JNIEnv* env
         frequency = (buffer[j] << 8) | buffer[j + 1];
         int val = buffer[j+2];
         int bin = frequency - low_freq;
-        __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "... freq: %d - val: %d - bin: %d", frequency, val, bin);
-        if(val>fill[i]) // Do a max across the sweeps
-          fill[i]=val;
+        //__android_log_print(ANDROID_LOG_INFO, LOG_TAG, "... freq: %d - val: %d - bin: %d", frequency, val, bin);
+        if(val>fill[bin]) { // Do a max across the sweeps
+          fill[bin]=val;
+        //  __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "... freq: %d - val: %d - bin: %d", frequency, val, bin);
+        }
 
-        if(frequency==high_freq)
+        if(frequency==high_freq) {
           curr_sweep++;
+          //__android_log_print(ANDROID_LOG_INFO, LOG_TAG, "Current sweep complete, now at: %d", curr_sweep);
+        }
 
         if(curr_sweep==sweeps)
           done=true;
@@ -118,7 +127,7 @@ Java_com_gnychis_ubertooth_DeviceHandlers_UbertoothOne_scanSpectrum( JNIEnv* env
     __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "not sure why, but the ubertooth scan failed");
   } else {
     (*env)->SetIntArrayRegion(env, (jintArray)result, (jsize)0, (jsize)nbins, fill);
-    __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "ubertooth scan complete");
+    //__android_log_print(ANDROID_LOG_INFO, LOG_TAG, "ubertooth scan complete");
   }
   
 	return result;
