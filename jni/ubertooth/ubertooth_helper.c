@@ -48,65 +48,71 @@ Java_com_gnychis_ubertooth_DeviceHandlers_UbertoothOne_startUbertooth(JNIEnv* en
 
 // Returns the "max" of the specified number of sweeps from low_freq to high_freq
 jintArray
-Java_com_gnychis_coexisyst_DeviceHandlers_UbertoothOne_poll( JNIEnv* env, jobject thiz, int low_freq, int high_freq, int sweeps)
+Java_com_gnychis_ubertooth_DeviceHandlers_UbertoothOne_scanSpectrum( JNIEnv* env, jobject thiz, int low_freq, int high_freq, int sweeps)
 {
-  int ns, xfer_size=512, num_blocks=0xFFFF;
+  int ns, xfer_size=512, num_blocks=0xFFFF, curr_sweep=0;
   int nbins = high_freq-low_freq;  // number of 1MHz bins
   jintArray result = (jintArray)(*env)->NewIntArray(env, nbins);
 	jint *fill = (int *)malloc(sizeof(int) * nbins);
+  bool done=false;
+        
+  __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "call to scanSpectrum(%d,%d,%d)", low_freq, high_freq, sweeps);
   
-  // This code is basically do_specan(), but that function simply prints results.  We want to hold them.
-  for(ns=0; ns<sweeps; ns++) {
-    u8 buffer[BUFFER_SIZE];
-    int r;
-    int i, j;
-    int xfer_blocks;
-    int num_xfers;
-    int transferred;
-    int frequency;
-    u32 time; /* in 100 nanosecond units */
+  u8 buffer[BUFFER_SIZE];
+  int r;
+  int i, j;
+  int xfer_blocks;
+  int num_xfers;
+  int transferred;
+  int frequency;
+  u32 time; /* in 100 nanosecond units */
 
-    if (xfer_size > BUFFER_SIZE)
-      xfer_size = BUFFER_SIZE;
-    xfer_blocks = xfer_size / PKT_LEN;
-    xfer_size = xfer_blocks * PKT_LEN;
-    num_xfers = num_blocks / xfer_blocks;
-    num_blocks = num_xfers * xfer_blocks;
-    
-    cmd_specan(devh, low_freq, high_freq);
+  if (xfer_size > BUFFER_SIZE)
+    xfer_size = BUFFER_SIZE;
+  xfer_blocks = xfer_size / PKT_LEN;
+  xfer_size = xfer_blocks * PKT_LEN;
+  num_xfers = num_blocks / xfer_blocks;
+  num_blocks = num_xfers * xfer_blocks;
+  
+  cmd_specan(devh, low_freq, high_freq);
 
-    while (num_xfers--) {
-      r = libusb_bulk_transfer(devh, DATA_IN, buffer, xfer_size,
-          &transferred, TIMEOUT);
-      if (r < 0) {
-        __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "bulk read returned: %d, failed to read", r);
-        return NULL;
-      }
-      if (transferred != xfer_size) {
-        __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "bad data read size (%d)", transferred);
-        return NULL;
-      }
-
-      /* process each received block */
-      for (i = 0; i < xfer_blocks; i++) {
-        time = buffer[4 + PKT_LEN * i]
-            | (buffer[5 + PKT_LEN * i] << 8)
-            | (buffer[6 + PKT_LEN * i] << 16)
-            | (buffer[7 + PKT_LEN * i] << 24);
-
-        for (j = PKT_LEN * i + SYM_OFFSET; j < PKT_LEN * i + 62; j += 3) {
-          frequency = (buffer[j] << 8) | buffer[j + 1];
-          int val = buffer[j+2];
-          int bin = frequency - low_freq;
-          if(val>fill[i]) // Do a max across the sweeps
-            fill[i]=val;
-        }
-      }
-      fflush(stderr);
+  while (!done) {
+    __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "while num_xfers %d", num_xfers);
+    r = libusb_bulk_transfer(devh, DATA_IN, buffer, xfer_size,
+        &transferred, TIMEOUT);
+    if (r < 0) {
+      __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "bulk read returned: %d, failed to read", r);
+      return NULL;
+    }
+    if (transferred != xfer_size) {
+      __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "bad data read size (%d)", transferred);
+      return NULL;
     }
 
+    /* process each received block */
+    for (i = 0; i < xfer_blocks; i++) {
+      time = buffer[4 + PKT_LEN * i]
+          | (buffer[5 + PKT_LEN * i] << 8)
+          | (buffer[6 + PKT_LEN * i] << 16)
+          | (buffer[7 + PKT_LEN * i] << 24);
+
+      for (j = PKT_LEN * i + SYM_OFFSET; j < PKT_LEN * i + 62; j += 3) {
+        frequency = (buffer[j] << 8) | buffer[j + 1];
+        int val = buffer[j+2];
+        int bin = frequency - low_freq;
+        __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "... freq: %d - val: %d - bin: %d", frequency, val, bin);
+        if(val>fill[i]) // Do a max across the sweeps
+          fill[i]=val;
+
+        if(frequency==high_freq)
+          curr_sweep++;
+
+        if(curr_sweep==sweeps)
+          done=true;
+      }
+    }
   }
-	
+
   if(result==NULL) {
 		result = (jintArray)(*env)->NewIntArray(env, 1);
     __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "not sure why, but the ubertooth scan failed");

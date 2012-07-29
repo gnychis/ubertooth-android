@@ -17,6 +17,9 @@ import com.stericson.RootTools.RootTools;
 public class UbertoothOne {
 	private static final String TAG = "UbertoothOneDev";
 	private static final boolean VERBOSE = true;
+	
+	public static final int BT_LOW_FREQ=2402;
+	public static final int BT_HIGH_FREQ=2480;
 
 	public static final int UBERTOOTH_CONNECT = 400;
 	public static final int UBERTOOTH_DISCONNECT = 401;
@@ -86,6 +89,8 @@ public class UbertoothOne {
 				sendMainMessage(ThreadMessages.UBERTOOTH_INITIALIZED);
 			else
 				sendMainMessage(ThreadMessages.UBERTOOTH_FAILED);
+			
+			int[] scan_res = scanSpectrum(BT_LOW_FREQ, BT_HIGH_FREQ, 3);
 
 			return "OK";
 		}
@@ -120,4 +125,5 @@ public class UbertoothOne {
 	
 	public native int startUbertooth();
 	public native int stopUbertooth();
+	public native int[] scanSpectrum(int low_freq, int high_freq, int sweeps);
 }
