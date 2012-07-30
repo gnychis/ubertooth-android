@@ -7,6 +7,7 @@ import java.util.concurrent.BlockingQueue;
 
 import android.app.Activity;
 import android.app.ProgressDialog;
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -19,6 +20,8 @@ import android.widget.Toast;
 
 import com.gnychis.ubertooth.Core.USBMon;
 import com.gnychis.ubertooth.DeviceHandlers.UbertoothOne;
+import com.gnychis.ubertooth.Interfaces.GraphSpectrum;
+import com.gnychis.ubertooth.Interfaces.IChart;
 import com.stericson.RootTools.RootTools;
 
 public class UbertoothMain extends Activity implements OnClickListener {
@@ -26,6 +29,9 @@ public class UbertoothMain extends Activity implements OnClickListener {
 	public UbertoothOne ubertooth;
 	protected USBMon usbmon;
 	public Button buttonScanSpectrum;
+	public IChart graphSpectrum;
+	UbertoothMain _this;
+	public ArrayList<Integer> _scan_result;
 	
 	public BlockingQueue<String> toastMessages;
 	private ProgressDialog pd;
@@ -55,7 +61,10 @@ public class UbertoothMain extends Activity implements OnClickListener {
     		Log.e("UbertoothMain", "error trying to load a USB related library", e);
     	}
     	
+    	_this = this;
+    	
     	toastMessages = new ArrayBlockingQueue<String>(20);
+    	graphSpectrum = new GraphSpectrum(this);
 		
     	buttonScanSpectrum = (Button) findViewById(R.id.buttonScan); buttonScanSpectrum.setOnClickListener(this);
     	buttonScanSpectrum.setEnabled(false);
@@ -105,8 +114,11 @@ public class UbertoothMain extends Activity implements OnClickListener {
 			
 			if(msg.what == ThreadMessages.UBERTOOTH_SCAN_COMPLETE.ordinal()) {
 				usbmon.startUSBMon();
-				ArrayList<Integer> scan_result = (ArrayList<Integer>)msg.obj;
+				_scan_result = (ArrayList<Integer>)msg.obj;
 				pd.dismiss();
+				
+				Intent i = graphSpectrum.execute(_this);
+				startActivity(i);
 			}
 			
 			
