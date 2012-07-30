@@ -23,7 +23,7 @@ public class UbertoothOne {
 	public static final int UBERTOOTH_CONNECT = 400;
 	public static final int UBERTOOTH_DISCONNECT = 401;
 	public static final String UBERTOOTH_SCAN_RESULT = "com.gnychis.coexisyst.UBERTOOTH_SCAN_RESULT";
-	public static final int POLLS_IN_MAX = 10;
+	public static final int SWEEPS_IN_MAX = 200;
 	
 	UbertoothMain _mainActivity;
 	public String _firmware_version;
@@ -43,7 +43,6 @@ public class UbertoothOne {
 	}
 	
 	public void connected() {
-		_mainActivity.buttonScanSpectrum.setEnabled(true);
 		_device_connected=true;
 		UbertoothOneInit wsi = new UbertoothOneInit();
 		wsi.execute(_mainActivity);
@@ -149,7 +148,7 @@ public class UbertoothOne {
 			
 			// Perform the scan, specify the low and high freqs as well as
 			// the number of sweeps to perform (this is a "max hold").
-			int[] scan_res = scanSpectrum(BT_LOW_FREQ, BT_HIGH_FREQ, 100);
+			int[] scan_res = scanSpectrum(BT_LOW_FREQ, BT_HIGH_FREQ, SWEEPS_IN_MAX);
 			
 			if(scan_res==null) {
 				sendMainMessage(ThreadMessages.UBERTOOTH_SCAN_FAILED, null);

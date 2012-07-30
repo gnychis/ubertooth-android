@@ -37,6 +37,7 @@ public class UbertoothMain extends Activity implements OnClickListener {
 	private ProgressDialog pd;
 	public enum ThreadMessages {
 		UBERTOOTH_CONNECTED,
+		UBERTOOTH_DISCONNECTED,
 		UBERTOOTH_INITIALIZED,
 		UBERTOOTH_FAILED,
 		UBERTOOTH_SCAN_COMPLETE,
@@ -97,7 +98,8 @@ public class UbertoothMain extends Activity implements OnClickListener {
 			if(msg.what == ThreadMessages.UBERTOOTH_INITIALIZED.ordinal()) {
 				pd.dismiss();
 				Toast.makeText(getApplicationContext(), "Successfully initialized Ubertooth One device (" + ubertooth._firmware_version + ")", Toast.LENGTH_LONG).show();	
-				usbmon.startUSBMon();		
+				usbmon.startUSBMon();	
+				buttonScanSpectrum.setEnabled(true);
 			}
 			
 			if(msg.what == ThreadMessages.UBERTOOTH_FAILED.ordinal()) {
@@ -115,10 +117,14 @@ public class UbertoothMain extends Activity implements OnClickListener {
 			if(msg.what == ThreadMessages.UBERTOOTH_SCAN_COMPLETE.ordinal()) {
 				usbmon.startUSBMon();
 				_scan_result = (ArrayList<Integer>)msg.obj;
-				pd.dismiss();
-				
 				Intent i = graphSpectrum.execute(_this);
 				startActivity(i);
+				pd.dismiss();
+			}
+			
+			if(msg.what == ThreadMessages.UBERTOOTH_DISCONNECTED.ordinal()) {
+				Toast.makeText(getApplicationContext(), "Ubertooth device has been disconnected", Toast.LENGTH_LONG).show();
+				ubertooth.disconnected();
 			}
 			
 			
