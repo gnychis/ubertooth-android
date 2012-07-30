@@ -75,7 +75,7 @@ public class USBMon
 	{		
 		if(event == UbertoothOne.UBERTOOTH_CONNECT) {
 			Message msg = new Message();
-			msg.obj = ThreadMessages.UBERTOOTH_CONNECTED;
+			msg.what = ThreadMessages.UBERTOOTH_CONNECTED.ordinal();
 			_mainActivity._handler.sendMessage(msg);
 			debugOut("got update that Ubertooth device was connected");
 		}

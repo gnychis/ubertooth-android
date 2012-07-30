@@ -1,5 +1,6 @@
 package com.gnychis.ubertooth;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -11,16 +12,20 @@ import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
 import android.view.Menu;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.widget.Button;
 import android.widget.Toast;
 
 import com.gnychis.ubertooth.Core.USBMon;
 import com.gnychis.ubertooth.DeviceHandlers.UbertoothOne;
 import com.stericson.RootTools.RootTools;
 
-public class UbertoothMain extends Activity {
+public class UbertoothMain extends Activity implements OnClickListener {
 	
 	public UbertoothOne ubertooth;
 	protected USBMon usbmon;
+	public Button buttonScanSpectrum;
 	
 	public BlockingQueue<String> toastMessages;
 	private ProgressDialog pd;
@@ -51,6 +56,9 @@ public class UbertoothMain extends Activity {
     	}
     	
     	toastMessages = new ArrayBlockingQueue<String>(20);
+		
+    	buttonScanSpectrum = (Button) findViewById(R.id.buttonScan); buttonScanSpectrum.setOnClickListener(this);
+    	buttonScanSpectrum.setEnabled(false);
     	
         ubertooth = new UbertoothOne(this);		// Instantiate the UbertoothOne
         usbmon = new USBMon(this, _handler);	// Start the USB handler
@@ -73,17 +81,38 @@ public class UbertoothMain extends Activity {
 						
 			///////////////////////////////////////////////////////////////////////
 			// A set of messages that that deal with hardware connections
-			if(msg.obj == ThreadMessages.UBERTOOTH_CONNECTED)
+			if(msg.what == ThreadMessages.UBERTOOTH_CONNECTED.ordinal()) {
 				ubertoothSettling();
-			if(msg.obj == ThreadMessages.UBERTOOTH_INITIALIZED)
-				ubertoothInitialized();
-			if(msg.obj == ThreadMessages.UBERTOOTH_FAILED)
-				ubertoothFailed();
+			}
+			
+			if(msg.what == ThreadMessages.UBERTOOTH_INITIALIZED.ordinal()) {
+				pd.dismiss();
+				Toast.makeText(getApplicationContext(), "Successfully initialized Ubertooth One device (" + ubertooth._firmware_version + ")", Toast.LENGTH_LONG).show();	
+				usbmon.startUSBMon();		
+			}
+			
+			if(msg.what == ThreadMessages.UBERTOOTH_FAILED.ordinal()) {
+				pd.dismiss();
+				usbmon.startUSBMon();
+				Toast.makeText(getApplicationContext(), "Failed to initialize Ubertooth One device", Toast.LENGTH_LONG).show();			
+			}
+			
+			if(msg.what == ThreadMessages.UBERTOOTH_SCAN_FAILED.ordinal()) {
+				pd.dismiss();
+				usbmon.startUSBMon();
+				Toast.makeText(getApplicationContext(), "Failed to initialize scan on the Ubertooth", Toast.LENGTH_LONG).show();
+			}
+			
+			if(msg.what == ThreadMessages.UBERTOOTH_SCAN_COMPLETE.ordinal()) {
+				usbmon.startUSBMon();
+				ArrayList<Integer> scan_result = (ArrayList<Integer>)msg.obj;
+				pd.dismiss();
+			}
 			
 			
 			///////////////////////////////////////////////////////////////////////
 			// A set of messages that that deal with hardware connections
-			if(msg.obj == ThreadMessages.SHOW_TOAST) {
+			if(msg.what == ThreadMessages.SHOW_TOAST.ordinal()) {
 				try {
 					String m = toastMessages.remove();
 					Toast.makeText(getApplicationContext(), m, Toast.LENGTH_LONG).show();	
@@ -92,30 +121,28 @@ public class UbertoothMain extends Activity {
 		}
 	};
 	
+	public void onClick(View view) {
+		if(view.getId() == R.id.buttonScan) {
+			pd = new ProgressDialog(this);
+			pd.setCancelable(false);
+			pd.setMessage("Scanning spectrum with Ubertooth...");
+			pd.show();
+			usbmon.stopUSBMon();
+			ubertooth.scanStart();
+		}
+	}
 	
 	public void ubertoothSettling() {
 		pd = ProgressDialog.show(this, "", "Initializing Ubertooth One device...", true, false);
 		usbmon.stopUSBMon();
 		ubertooth.connected();
 	}
-	
-	public void ubertoothInitialized() {
-		pd.dismiss();
-		Toast.makeText(getApplicationContext(), "Successfully initialized Ubertooth One device (" + ubertooth._firmware_version + ")", Toast.LENGTH_LONG).show();	
-		usbmon.startUSBMon();		
-	}
-	
-	public void ubertoothFailed() {
-		pd.dismiss();
-		usbmon.startUSBMon();
-		Toast.makeText(getApplicationContext(), "Failed to initialize Ubertooth One device", Toast.LENGTH_LONG).show();
-	}
-	
+
 	public void sendToastMessage(Handler h, String msg) {
 		try {
 			toastMessages.put(msg);
 			Message m = new Message();
-			m.obj = ThreadMessages.SHOW_TOAST;
+			m.what = ThreadMessages.SHOW_TOAST.ordinal();
 			h.sendMessage(m);
 		} catch (Exception e) {
 			Log.e("UbertoothMain", "Exception trying to put toast msg in queue:", e);

@@ -3,10 +3,8 @@ package com.gnychis.ubertooth.DeviceHandlers;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.Semaphore;
 
 import android.content.Context;
-import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Message;
 import android.util.Log;
@@ -30,6 +28,8 @@ public class UbertoothOne {
 	UbertoothMain _mainActivity;
 	public String _firmware_version;
 	
+	UbertoothOneScan _scan_thread;
+	
 	public boolean _device_connected;
 	
 	ArrayList<Integer> _scan_result;
@@ -43,12 +43,14 @@ public class UbertoothOne {
 	}
 	
 	public void connected() {
+		_mainActivity.buttonScanSpectrum.setEnabled(true);
 		_device_connected=true;
 		UbertoothOneInit wsi = new UbertoothOneInit();
 		wsi.execute(_mainActivity);
 	}
 	
 	public void disconnected() {
+		_mainActivity.buttonScanSpectrum.setEnabled(false);
 		_device_connected=false;
 	}
 	
@@ -58,9 +60,10 @@ public class UbertoothOne {
 		UbertoothMain mainActivity;
 		
 		// Used to send messages to the main Activity (UI) thread
-		protected void sendMainMessage(UbertoothMain.ThreadMessages t) {
+		protected void sendMainMessage(UbertoothMain.ThreadMessages t, Object obj) {
 			Message msg = new Message();
-			msg.obj = t;
+			msg.what = t.ordinal();
+			msg.obj = obj;
 			mainActivity._handler.sendMessage(msg);
 		}
 		
@@ -75,12 +78,13 @@ public class UbertoothOne {
 			
 			// Get the firmware version for fun and demonstration
 			_firmware_version = runCommand("/data/data/com.gnychis.ubertooth/files/ubertooth_util -v").get(0);
+			_scan_result = new ArrayList<Integer>();
 			
 			// Try to initialize the Ubertooth One
 			if(startUbertooth()==1)
-				sendMainMessage(ThreadMessages.UBERTOOTH_INITIALIZED);
+				sendMainMessage(ThreadMessages.UBERTOOTH_INITIALIZED,null);
 			else
-				sendMainMessage(ThreadMessages.UBERTOOTH_FAILED);
+				sendMainMessage(ThreadMessages.UBERTOOTH_FAILED,null);
 
 			return "OK";
 		}
@@ -113,18 +117,27 @@ public class UbertoothOne {
 		}
 	}
 	
+	// This starts the scan thread, passing the main activity and beginning the spectrum scan.
+	public boolean scanStart() {
+		_scan_result.clear();
+		_scan_thread = new UbertoothOneScan();
+		_scan_thread.execute(_mainActivity);
+		return true;  // in scanning state, and channel hopping
+	}
+	
 	// This is a thread to perform the actual scan (blocking and waiting for it), rather
 	// than blocking the main activity.  When it is complete, it sends the results to the
 	// main activity.
-	protected class WiSpyScan extends AsyncTask<Context, Integer, String>
+	protected class UbertoothOneScan extends AsyncTask<Context, Integer, String>
 	{
 		Context parent;
 		UbertoothMain mainActivity;
 		
 		// Used to send messages to the main Activity (UI) thread
-		protected void sendMainMessage(UbertoothMain.ThreadMessages t) {
+		protected void sendMainMessage(UbertoothMain.ThreadMessages t, Object obj) {
 			Message msg = new Message();
-			msg.obj = t;
+			msg.what = t.ordinal();
+			msg.obj = obj;
 			mainActivity._handler.sendMessage(msg);
 		}
 		
@@ -136,10 +149,10 @@ public class UbertoothOne {
 			
 			// Perform the scan, specify the low and high freqs as well as
 			// the number of sweeps to perform (this is a "max hold").
-			int[] scan_res = scanSpectrum(BT_LOW_FREQ, BT_HIGH_FREQ, 10);
+			int[] scan_res = scanSpectrum(BT_LOW_FREQ, BT_HIGH_FREQ, 100);
 			
 			if(scan_res==null) {
-				sendMainMessage(ThreadMessages.UBERTOOTH_SCAN_FAILED);
+				sendMainMessage(ThreadMessages.UBERTOOTH_SCAN_FAILED, null);
 				return "NOPE";
 			}
 			
@@ -147,13 +160,7 @@ public class UbertoothOne {
 			for(int i=0; i<scan_res.length; i++)
 				_scan_result.add(scan_res[i]);
 				
-			sendMainMessage(ThreadMessages.UBERTOOTH_SCAN_COMPLETE);
-			
-			// Now, send out a broadcast with the results in the broadcast
-			Intent i = new Intent();
-			i.setAction(UBERTOOTH_SCAN_RESULT);
-			i.putExtra("spectrum-bins", _scan_result);
-			mainActivity.sendBroadcast(i);
+			sendMainMessage(ThreadMessages.UBERTOOTH_SCAN_COMPLETE, _scan_result);
 			
 			return "PASS";
 		}
