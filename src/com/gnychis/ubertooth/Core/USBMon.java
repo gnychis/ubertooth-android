@@ -13,7 +13,10 @@ import com.gnychis.ubertooth.UbertoothMain.ThreadMessages;
 import com.gnychis.ubertooth.DeviceHandlers.UbertoothOne;
 import com.stericson.RootTools.RootTools;
 
-// A class to handle USB worker like things
+// This is a class I built which accesses native libusb and libusb-compat functions
+// with the help of native JNI functions in jni/usbhelper.  The main purpose is to
+// periodically poll for a list of USB devices connected, and check if any of the
+// devices are an Ubertooth (specifically, only support for Ubertooth One).  
 public class USBMon
 {
 	private static boolean VERBOSE = false;
@@ -37,6 +40,8 @@ public class USBMon
 			Log.d("USBMon", msg);
 	}
 	
+	// Schedule a periodic timer with an interval of USB_POLL_TIME and when
+	// it fires we poll with the list of connected USB devices.
 	public boolean startUSBMon() {
 		if(_scan_timer!=null)
 			return false;
@@ -64,13 +69,14 @@ public class USBMon
 	{
 		int ubertooth_in_devlist = USBcheckForDevice(0xffff, 0x0004);
 				
-		// Ubertooth check
+		// Check if the Ubertooth device has just been connected, or disconnected.
 		if(ubertooth_in_devlist==1 && _mainActivity.ubertooth._device_connected==false)
 			updateState(UbertoothOne.UBERTOOTH_CONNECT);
 		else if(ubertooth_in_devlist==0 && _mainActivity.ubertooth._device_connected==true)
 			updateState(UbertoothOne.UBERTOOTH_DISCONNECT);
 	}
 	
+	// Regardless of the change in state, we notify the main activity which can perform an action.
 	protected void updateState(int event)
 	{		
 		Message msg = new Message();

@@ -13,6 +13,12 @@ import com.gnychis.ubertooth.UbertoothMain;
 import com.gnychis.ubertooth.UbertoothMain.ThreadMessages;
 import com.stericson.RootTools.RootTools;
 
+// This class accesses native JNI methods that are wrappers around some functions
+// in ubertooth.c, ultimately accessing the Ubertooth natively.  There is a helper
+// JNI library called 'ubertooth' and built by jni/ubertooth/ubertooth_helper.  
+// Others could build additional native JNI access to ubertooth functions by placing
+// them in ubertooth_helper.  This is where startUbertooth(), stopUbertooth(), and 
+// scanSpectrum() exist.
 public class UbertoothOne {
 	private static final String TAG = "UbertoothOneDev";
 	private static final boolean VERBOSE = true;
@@ -25,34 +31,34 @@ public class UbertoothOne {
 	public static final String UBERTOOTH_SCAN_RESULT = "com.gnychis.coexisyst.UBERTOOTH_SCAN_RESULT";
 	public static final int SWEEPS_IN_MAX = 200;
 	
-	UbertoothMain _mainActivity;
-	public String _firmware_version;
+	UbertoothMain _mainActivity;		// Keep the instance of the main activity
+	public String _firmware_version;	// Just for asthetics, keep the firmware version
 	
-	UbertoothOneScan _scan_thread;
+	UbertoothOneScan _scan_thread;		// We use a separate thread for scans so they don't block main activity
+	public boolean _device_connected;	// Simple bool to keep track if the Ubertooth is currently connected
+	ArrayList<Integer> _scan_result;	// Keep track of the last scan result
 	
-	public boolean _device_connected;
+	public UbertoothOne(UbertoothMain c) { _mainActivity = c; }
+	public boolean isConnected() { return _device_connected; }
 	
-	ArrayList<Integer> _scan_result;
-	
-	public UbertoothOne(UbertoothMain c) {
-		_mainActivity = c;
-	}
-	
-	public boolean isConnected() {
-		return _device_connected;
-	}
-	
+	// If we are notified that the device is connected, we execute a thread which actually
+	// initializes the Ubertooth USB device.  Again, so we don't block the main activity.  It sends
+	// a notification when initialized, or when the initialization fails.
 	public void connected() {
 		_device_connected=true;
 		UbertoothOneInit wsi = new UbertoothOneInit();
 		wsi.execute(_mainActivity);
 	}
 	
+	// When disconnected, we can disable the scan button.
 	public void disconnected() {
 		_mainActivity.buttonScanSpectrum.setEnabled(false);
 		_device_connected=false;
 	}
 	
+	// This is a thread that will initialize the Ubertooth device by calling a native
+	// JNI library helper function called startUbertooth().  If the initialization fails,
+	// we will be notified of it.  
 	protected class UbertoothOneInit extends AsyncTask<Context, Integer, String>
 	{
 		Context parent;
@@ -72,7 +78,8 @@ public class UbertoothOne {
 			parent = params[0];
 			mainActivity = (UbertoothMain) params[0];
 			
-			// To use the WiSpy device, we need to give the USB device the application's permissions
+			// To use the Ubertooth device, we need to give the USB device the application's permissions.
+			// Otherwise, it is limited to root and the application cannot natively access the /dev handle.
 			runCommand("find /dev/bus -exec chown " + mainActivity.getAppUser() + " {} \\;");
 			
 			// Get the firmware version for fun and demonstration
@@ -88,6 +95,8 @@ public class UbertoothOne {
 			return "OK";
 		}
 		
+		// This is a helper function I wrote to run a command as root and get the resulting
+		// output from the shell.  Mainly provided by RootTools.
 		public ArrayList<String> runCommand(String c) {
 			ArrayList<String> res = new ArrayList<String>();
 			try {
