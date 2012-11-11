@@ -1,8 +1,6 @@
 package com.gnychis.ubertooth.DeviceHandlers;
 
 import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
 
 import android.content.Context;
 import android.os.AsyncTask;
@@ -11,7 +9,6 @@ import android.util.Log;
 
 import com.gnychis.ubertooth.UbertoothMain;
 import com.gnychis.ubertooth.UbertoothMain.ThreadMessages;
-import com.stericson.RootTools.RootTools;
 
 // This class accesses native JNI methods that are wrappers around some functions
 // in ubertooth.c, ultimately accessing the Ubertooth natively.  There is a helper
@@ -80,10 +77,11 @@ public class UbertoothOne {
 			
 			// To use the Ubertooth device, we need to give the USB device the application's permissions.
 			// Otherwise, it is limited to root and the application cannot natively access the /dev handle.
-			runCommand("find /dev/bus -exec chown " + mainActivity.getAppUser() + " {} \\;");
+			UbertoothMain.runCommand("find /dev/bus -exec chown " + mainActivity.getAppUser() + " {} \\;");
 			
 			// Get the firmware version for fun and demonstration
-			_firmware_version = runCommand("/data/data/com.gnychis.ubertooth/files/ubertooth_util -v").get(0);
+			_firmware_version = UbertoothMain.runCommand("/data/data/com.gnychis.ubertooth/files/ubertooth_util -v").get(0);
+			Log.d(TAG, "Ubertooth firmware version: " + _firmware_version);
 			_scan_result = new ArrayList<Integer>();
 			
 			// Try to initialize the Ubertooth One
@@ -93,35 +91,6 @@ public class UbertoothOne {
 				sendMainMessage(ThreadMessages.UBERTOOTH_FAILED,null);
 
 			return "OK";
-		}
-		
-		// This is a helper function I wrote to run a command as root and get the resulting
-		// output from the shell.  Mainly provided by RootTools.
-		public ArrayList<String> runCommand(String c) {
-			ArrayList<String> res = new ArrayList<String>();
-			try {
-				// First, run the command push the result to an ArrayList
-				List<String> res_list = RootTools.sendShell(c,0);
-				Iterator<String> it=res_list.iterator();
-				while(it.hasNext()) 
-					res.add((String)it.next());
-				
-				res.remove(res.size()-1);
-				
-				// Trim the ArrayList of an extra blank lines at the end
-				while(true) {
-					int index = res.size()-1;
-					if(index>=0 && res.get(index).length()==0)
-						res.remove(index);
-					else
-						break;
-				}
-				return res;
-				
-			} catch(Exception e) {
-				Log.e("WifiDev", "error writing to RootTools the command: " + c, e);
-				return null;
-			}
 		}
 	}
 	

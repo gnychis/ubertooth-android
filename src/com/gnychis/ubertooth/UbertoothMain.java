@@ -1,6 +1,7 @@
 package com.gnychis.ubertooth;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -65,6 +66,7 @@ public class UbertoothMain extends Activity implements OnClickListener {
         // demonstrates direct access to the device without the need of relying on
         // external applications.
         RootTools.installBinary(this, R.raw.ubertooth_util, "ubertooth_util");
+        RootTools.installBinary(this, R.raw.link_libraries, "link_libraries.sh", "755");
         
     	try {  // Load several libraries.  These are all built in jni/ with ndk-build
     		System.loadLibrary("usb");
@@ -75,6 +77,7 @@ public class UbertoothMain extends Activity implements OnClickListener {
     	} catch (Exception e) {
     		Log.e("UbertoothMain", "error trying to load a USB related library", e);
     	}
+    	UbertoothMain.runCommand("sh /data/data/com.gnychis.ubertooth/files/link_libraries.sh com.gnychis.ubertooth");
     	
     	_this = this;	// Save an instance to this class
     	
@@ -205,4 +208,34 @@ public class UbertoothMain extends Activity implements OnClickListener {
     		return "FAIL";
     	}
     }
+    
+	
+	// This is a helper function I wrote to run a command as root and get the resulting
+	// output from the shell.  Mainly provided by RootTools.
+	public static ArrayList<String> runCommand(String c) {
+		ArrayList<String> res = new ArrayList<String>();
+		try {
+			// First, run the command push the result to an ArrayList
+			List<String> res_list = RootTools.sendShell(c,0);
+			Iterator<String> it=res_list.iterator();
+			while(it.hasNext()) 
+				res.add((String)it.next());
+			
+			res.remove(res.size()-1);
+			
+			// Trim the ArrayList of an extra blank lines at the end
+			while(true) {
+				int index = res.size()-1;
+				if(index>=0 && res.get(index).length()==0)
+					res.remove(index);
+				else
+					break;
+			}
+			return res;
+			
+		} catch(Exception e) {
+			Log.e("WifiDev", "error writing to RootTools the command: " + c, e);
+			return null;
+		}
+	}
 }
