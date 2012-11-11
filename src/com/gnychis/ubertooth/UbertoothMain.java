@@ -65,6 +65,7 @@ public class UbertoothMain extends Activity implements OnClickListener {
         // and uses native code to initiate the scan and get the results.  This
         // demonstrates direct access to the device without the need of relying on
         // external applications.
+        RootTools.remount("/system/", "rw");
         RootTools.installBinary(this, R.raw.ubertooth_util, "ubertooth_util");
         RootTools.installBinary(this, R.raw.link_libraries, "link_libraries.sh", "755");
         
